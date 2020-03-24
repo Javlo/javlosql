@@ -8,7 +8,7 @@ Javlo SQL is very simple tools to create and manipulate SQL database (postgres) 
 
 ### code sample
 
-* bean *
+#### bean
 `
 @Table
 public class Hotel {
@@ -43,17 +43,17 @@ public class Hotel {
 }
 `
 
-* create table *
+#### create table
 `
 SQLBuilder.createOrUpdateTable(conn, new Hotel());
 `
 
-* update data *
+#### update data
 `
 SQLBuilder.insertOrUpdate(conn, hotel);
 `
 
-* work with ResultSet *
+#### work with ResultSet
 `
 ResultSet rs = stm.executeQuery("select * from hotel");
 if (rs.next()) {
