@@ -10,6 +10,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -30,6 +31,8 @@ public class SQLBuilder {
 		} else if (type.equalsIgnoreCase("Long")) {
 			return "getLong";
 		} else if (type.equalsIgnoreCase("Date")) {
+			return "getDate";
+		} else if (type.equalsIgnoreCase("LocalDate")) {
 			return "getDate";
 		} else if (type.equalsIgnoreCase("Timestamp")) {
 			return "getTimestamp";
@@ -62,6 +65,8 @@ public class SQLBuilder {
 			return st.getClass().getMethod("setDouble", int.class, double.class);
 		} else if (type.equalsIgnoreCase("boolean")) {
 			return st.getClass().getMethod("setBoolean", int.class, boolean.class);
+		} else if (type.equalsIgnoreCase("LocalDate")) {
+			return st.getClass().getMethod("setDate", int.class, java.sql.Date.class);
 		} else {
 			logger.warning("type not found : " + type);
 			return st.getClass().getMethod("setString", int.class, String.class);
@@ -311,6 +316,27 @@ public class SQLBuilder {
 				throw new SQLException("more than one result on load bean : " + bean);
 			}
 			return bean;
+		} finally {
+			st.close();
+		}
+	}
+	
+	public static boolean update(Connection conn, Object bean, String... inWhereCols) throws SQLException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		Collection<String> whereCols = Arrays.asList(inWhereCols);
+		List<SQLItem> items = extractSQLItemFromBean(bean, true);
+		List<SQLItem> whereItems = new LinkedList<>();
+		for (SQLItem sqlItem : items) {
+			if (sqlItem.isPrimaryKey() || whereCols.contains(sqlItem.getName())) {
+				whereItems.add(sqlItem);
+			}
+		}
+		if (whereItems.size() == 0) {
+			throw new SQLException("no where clause defined in bean : "+bean.getClass().getCanonicalName());
+		}
+		Statement st = conn.createStatement();
+		try {
+			update(conn, whereItems, bean, null);
+			return true;
 		} finally {
 			st.close();
 		}
