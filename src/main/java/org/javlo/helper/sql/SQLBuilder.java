@@ -1,5 +1,6 @@
 package org.javlo.helper.sql;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -72,12 +73,11 @@ public class SQLBuilder {
 			return st.getClass().getMethod("setString", int.class, String.class);
 		}
 	}
-	
+
 	public static boolean isEmpty(Object value) {
 		return (value == null || value.toString() == null || value.toString().trim().length() == 0);
 	}
 
-	
 	public static String neverNullOrEmpty(Object inStr, String replaceWith) {
 		if (isEmpty(inStr)) {
 			return replaceWith;
@@ -85,7 +85,7 @@ public class SQLBuilder {
 			return "" + inStr;
 		}
 	}
-	
+
 	public static <E> List<E> createList(E... items) {
 		List<E> out = new LinkedList<>();
 		for (E i : items) {
@@ -171,7 +171,6 @@ public class SQLBuilder {
 						} else {
 							setMethod = bean.getClass().getMethod(m.getName().replaceFirst("is", "set"), m.getReturnType());
 						}
-
 						if (wasNull && setMethod.getParameters().length > 0 && !setMethod.getParameterTypes()[0].isPrimitive()) {
 							setMethod.invoke(bean, new Object[] { null });
 						} else {
@@ -194,7 +193,7 @@ public class SQLBuilder {
 			tableName = t.name();
 		}
 		try {
-			List<SQLItem> items = extractSQLItemFromBean(bean, false);
+			List<SQLItem> items = extractSQLItemFromBean(bean, true);
 			items.addAll(createList(manualItems));
 			return insert(conn, tableName, items);
 		} catch (Exception e) {
@@ -206,9 +205,14 @@ public class SQLBuilder {
 		String sql = "INSERT INTO \"" + table + "\" (";
 		String valuesSQL = "";
 		Long outId = null;
+		SQLItem primaryKey = null;
 		for (SQLItem i : items) {
-			sql = sql + '"' + i.getName() + "\",";
-			valuesSQL = valuesSQL + "?,";
+			if (i.isAuto()) {
+				primaryKey = i;
+			} else {
+				sql = sql + '"' + i.getName() + "\",";
+				valuesSQL = valuesSQL + "?,";
+			}
 		}
 		sql = sql.substring(0, sql.length() - 1) + ") VALUES (" + valuesSQL.substring(0, valuesSQL.length() - 1) + ")";
 		if (conn != null) {
@@ -216,23 +220,31 @@ public class SQLBuilder {
 			try {
 				int i = 1;
 				for (SQLItem item : items) {
-					Method set = getStatementSetMethod(st, item.getType());
-					if (item.getValue() != null) {
-						try {
-							set.invoke(st, i, item.getValue());
-						} catch (Exception e) {
-							throw new SQLException("error on : "+item.getName()+"::"+item.getType()+" method:"+set.getName()+" method_type:"+set.getParameters()[1].getType()+" value_type="+item.getValue().getClass().getName()+" - "+e.getMessage());
+					if (!item.isAuto()) {
+						Method set = getStatementSetMethod(st, item.getType());
+						if (item.getValue() != null) {
+							try {
+								set.invoke(st, i, item.getValue());
+							} catch (Exception e) {
+								e.printStackTrace();
+								throw new SQLException("error on : " + item.getName() + ":" + item.getType() + " method:" + set.getName() + " method_type:" + set.getParameters()[1].getType() + " value_type=" + item.getValue().getClass().getName() + " - " + e.getMessage());
+							}
+
+						} else {
+							st.setNull(i, item.getSQLType());
 						}
-						
-					} else {
-						st.setNull(i, item.getSQLType());
+						i++;
 					}
-					i++;
 				}
 				st.execute();
 				ResultSet generatedKeys = st.getGeneratedKeys();
 				if (generatedKeys.next()) {
-					Object newId = generatedKeys.getObject(1);
+					Object newId;
+					if (primaryKey != null) {
+						newId = generatedKeys.getObject(primaryKey.getName());
+					} else {
+						newId = generatedKeys.getObject(1);
+					}
 					if (newId instanceof Long) {
 						outId = (long) newId;
 					} else if (newId instanceof Integer) {
@@ -320,7 +332,7 @@ public class SQLBuilder {
 			st.close();
 		}
 	}
-	
+
 	public static boolean update(Connection conn, Object bean, String... inWhereCols) throws SQLException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		Collection<String> whereCols = Arrays.asList(inWhereCols);
 		List<SQLItem> items = extractSQLItemFromBean(bean, true);
@@ -331,7 +343,7 @@ public class SQLBuilder {
 			}
 		}
 		if (whereItems.size() == 0) {
-			throw new SQLException("no where clause defined in bean : "+bean.getClass().getCanonicalName());
+			throw new SQLException("no where clause defined in bean : " + bean.getClass().getCanonicalName());
 		}
 		Statement st = conn.createStatement();
 		try {
@@ -345,10 +357,8 @@ public class SQLBuilder {
 	/**
 	 * create or insert the bean in the table
 	 * 
-	 * @param conn
-	 *            a connection to the data base
-	 * @param bean
-	 *            a bean with @table
+	 * @param conn a connection to the data base
+	 * @param bean a bean with @table
 	 * @return true if insert, false if update
 	 * @throws SQLException
 	 * @throws IllegalAccessException
@@ -381,7 +391,24 @@ public class SQLBuilder {
 				update(conn, whereItems, bean, null);
 				return false;
 			} else {
-				insert(conn, bean);
+				Long id = insert(conn, bean);
+				if (id != null) {
+					String setMethod = null;
+					for (Method m : bean.getClass().getMethods()) {
+						for (Annotation a : m.getAnnotations()) {
+							if (a instanceof Column && ((Column) a).primaryKey()) {
+								setMethod = m.getName().replaceFirst("get", "set");
+							}
+						}
+					}
+					if (setMethod != null) {
+						for (Method m : bean.getClass().getMethods()) {
+							if (m.getName().equals(setMethod)) {
+								m.invoke(bean, id);
+							}
+						}
+					}
+				}
 				return true;
 			}
 		} finally {
@@ -474,12 +501,12 @@ public class SQLBuilder {
 		}
 		return result;
 	}
-	
+
 	public static Object escapeForSql(Object value) {
 		if (value == null || !(value instanceof String)) {
 			return value;
 		} else {
-			return ((String)value).replace("'", "''");
+			return ((String) value).replace("'", "''");
 		}
 	}
 
@@ -512,7 +539,7 @@ public class SQLBuilder {
 			} catch (Exception e) {
 				// e.printStackTrace();
 			}
-			
+
 			if (item.isNotNull()) {
 				sql = "ALTER TABLE \"" + tableName + "\" ALTER COLUMN \"" + item.getName() + "\" SET NOT NULL";
 			} else {
@@ -523,12 +550,12 @@ public class SQLBuilder {
 			} catch (Exception e) {
 				// e.printStackTrace();
 			}
-			
+
 			if (!isEmpty(item.getDefaultValue())) {
 				if (isNumeric(item.getType())) {
-					sql = "ALTER TABLE \"" + tableName + "\" ALTER \"" + item.getName() + "\" SET DEFAULT "+item.getDefaultValue();
+					sql = "ALTER TABLE \"" + tableName + "\" ALTER \"" + item.getName() + "\" SET DEFAULT " + item.getDefaultValue();
 				} else {
-					sql = "ALTER TABLE \"" + tableName + "\" ALTER \"" + item.getName() + "\" SET DEFAULT '"+item.getDefaultValue()+"'";
+					sql = "ALTER TABLE \"" + tableName + "\" ALTER \"" + item.getName() + "\" SET DEFAULT '" + item.getDefaultValue() + "'";
 				}
 			}
 			try {
@@ -536,7 +563,7 @@ public class SQLBuilder {
 			} catch (Exception e) {
 				// e.printStackTrace();
 			}
-			
+
 			if (!isEmpty(item.getForeign())) {
 				if (!item.getForeign().contains(".")) {
 					throw new SQLException("foreign format : #table#.#column#");

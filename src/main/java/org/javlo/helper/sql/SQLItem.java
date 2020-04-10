@@ -77,6 +77,8 @@ public class SQLItem {
 			return Types.TIMESTAMP;
 		} else if (type.equalsIgnoreCase("double")) {
 			return Types.REAL;
+		} else if (type.equalsIgnoreCase("boolean")) {
+			return Types.BOOLEAN;
 		} else {
 			return Types.VARCHAR;
 		}
