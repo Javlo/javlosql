@@ -253,6 +253,7 @@ public class SQLBuilder {
 					}
 				}
 			} catch (Exception e) {
+				logger.warning("error on : "+sql);
 				e.printStackTrace();
 				throw new SQLException(e);
 			} finally {

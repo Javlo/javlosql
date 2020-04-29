@@ -17,12 +17,14 @@ public class Hotel {
 
 	private long id;
 	private String name;
+	private long city;
+	private Date latestUpdate = new Date();
 	
 
 	public Hotel() {
 	}
 
-	@Column(auto = true)
+	@Column(auto = true, primaryKey = true)
 	public long getId() {
 		return id;
 	}
@@ -38,6 +40,23 @@ public class Hotel {
 
 	public void setName(String name) {
 		this.name = name;
+	}
+
+	@Column (foreign = "city.id", notNull = true)	
+	public long getCity() {
+		return city;
+	}
+
+	public void setCity(String city) {
+		this.city = city;
+	}
+	
+	@Column (name="lastest_update", type="timestamp")
+	public Date getLatestUpdate() {
+		return latestUpdate;
+	}
+	public void setLatestUpdate(Date latestUpdate) {
+		this.latestUpdate = latestUpdate;
 	}
 
 }
