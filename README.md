@@ -50,11 +50,12 @@ public class Hotel {
 	public void setCity(String city) {
 		this.city = city;
 	}
-	
+
 	@Column (name="lastest_update", type="timestamp")
 	public Date getLatestUpdate() {
 		return latestUpdate;
 	}
+	
 	public void setLatestUpdate(Date latestUpdate) {
 		this.latestUpdate = latestUpdate;
 	}
