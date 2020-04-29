@@ -19,7 +19,6 @@ public class Hotel {
 	private String name;
 	private long city;
 	private Date latestUpdate = new Date();
-	
 
 	public Hotel() {
 	}
@@ -55,7 +54,7 @@ public class Hotel {
 	public Date getLatestUpdate() {
 		return latestUpdate;
 	}
-	
+
 	public void setLatestUpdate(Date latestUpdate) {
 		this.latestUpdate = latestUpdate;
 	}
