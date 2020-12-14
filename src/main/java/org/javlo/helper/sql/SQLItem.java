@@ -63,15 +63,13 @@ public class SQLItem {
 	public int getSQLType() {
 		if (type.equals("String")) {
 			return Types.VARCHAR;
-		} else if (type.equals("Date")) {
+		} else if (type.equals("Date") || type.equals("LocalDate")) {
 			return Types.DATE;
 		} else if (type.equalsIgnoreCase("int") || type.equalsIgnoreCase("integer")) {
 			return Types.INTEGER;
 		} else if (type.equalsIgnoreCase("long")) {
 			return Types.BIGINT;
-		} else if (type.equals("Date")) {
-			return Types.DATE;
-		} else if (type.equalsIgnoreCase("time")) {
+		} else if (type.equalsIgnoreCase("time") || type.equalsIgnoreCase("LocalTime")) {
 			return Types.TIME;
 		} else if (type.equalsIgnoreCase("timestamp")) {
 			return Types.TIMESTAMP;
