@@ -15,6 +15,7 @@ import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -257,12 +258,14 @@ public class SQLBuilder {
 			}
 		}
 		sql = sql.substring(0, sql.length() - 1) + ") VALUES (" + valuesSQL.substring(0, valuesSQL.length() - 1) + ")";
+		SQLItem errorItem = null;
 		if (conn != null) {
 			PreparedStatement st = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			try {
-				int i = 1;
+				int i = 1;				
 				for (SQLItem item : items) {
-					if (!item.isAuto()) {
+					errorItem = item;
+					if (!item.isAuto()) { 
 						Method set = getStatementSetMethod(st, item.getType());
 						if (item.getValue() != null) {
 							try {
@@ -285,6 +288,7 @@ public class SQLBuilder {
 						i++;
 					}
 				}
+				errorItem = null;
 				st.execute();
 				ResultSet generatedKeys = st.getGeneratedKeys();
 				if (generatedKeys.next()) {
@@ -302,6 +306,9 @@ public class SQLBuilder {
 					}
 				}
 			} catch (Exception e) {
+				if (errorItem != null) {
+					logger.severe(" Item:"+errorItem.getName()+ " - SQLType:"+errorItem.getSQLType()+" - Type:"+errorItem.getType());
+				}
 				logger.warning("error on : "+sql);
 				e.printStackTrace();
 				throw new SQLException(e);
@@ -539,19 +546,30 @@ public class SQLBuilder {
 		}
 
 		sql = sql.substring(0, sql.length() - 1) + createWereClause(whereIds);
+		SQLItem errorItem=null;
 		if (conn != null) {
 			PreparedStatement st = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			try {
 				int i = 1;
 				for (SQLItem item : items) {
+					errorItem = item;
 					Method set = getStatementSetMethod(st, item.getType());
 					if (item.getValue() != null) {
-						set.invoke(st, i, item.getValue());
+						Object value = item.getValue();
+						if (value instanceof LocalDateTime ) {
+							value = Timestamp.valueOf((LocalDateTime)value);
+						} else if (value instanceof LocalDate) {
+							value = java.sql.Date.valueOf((LocalDate)value);
+						} else if (value instanceof LocalTime) {
+							value = java.sql.Time.valueOf((LocalTime)value);
+						}
+						set.invoke(st, i, value);
 					} else {
 						st.setNull(i, item.getSQLType());
 					}
 					i++;
 				}
+				errorItem = null;
 				st.execute();
 				if (generateKey) {
 					ResultSet generatedKeys = st.getGeneratedKeys();
@@ -565,7 +583,13 @@ public class SQLBuilder {
 				}
 			} catch (Exception e) {
 				e.printStackTrace();
+				String itemError = "";
+				if (errorItem != null) {
+					itemError = " Item:"+errorItem.getName()+ " - SQLType:"+errorItem.getSQLType()+" - Type:"+errorItem.getType()+" - value:"+errorItem.getValue();
+					logger.severe(itemError);
+				}
 				logger.severe("error in : " + sql);
+				
 				throw new SQLException(e);
 			} finally {
 				st.close();

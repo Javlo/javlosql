@@ -1,6 +1,9 @@
 package org.javlo.helper.sql;
 
 import java.sql.Types;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -109,6 +112,15 @@ public class SQLItem {
 			} else {
 				return new java.sql.Date(((Calendar) value).getTimeInMillis());
 			}
+		}
+		if (value instanceof LocalDate) {
+			return java.sql.Date.valueOf((LocalDate)value);
+		}
+		if (value instanceof LocalTime) {
+			return java.sql.Time.valueOf((LocalTime)value);
+		}
+		if (value instanceof LocalDateTime) {
+			return java.sql.Timestamp.valueOf((LocalDateTime)value);
 		}
 		return value;
 	}

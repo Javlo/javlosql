@@ -32,9 +32,10 @@ public class SqlTest extends TestCase {
 		
 		PreparedStatement testSt = conn.prepareStatement("insert into city (name) values(?)");
 		System.out.println(">>>>>>>>> SqlTest.testCreate : testSt class = "+testSt.getClass()); //TODO: remove debug trace
-		Method setString = testSt.getClass().getMethod("setString", int.class, String.class);
+		Method setString = testSt.getClass().getMethod("setObject", int.class, Object.class);
+		System.out.println(setString);
 		setString.invoke(testSt, 1, "TEST_CITY");
-		//testSt.setString(1, "TEST_CITY");
+		testSt.setString(1, "TEST_CITY");
 		testSt.execute();
 		testSt.close();
 		
