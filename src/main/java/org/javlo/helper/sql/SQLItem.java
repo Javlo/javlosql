@@ -74,7 +74,7 @@ public class SQLItem {
 			return Types.BIGINT;
 		} else if (type.equalsIgnoreCase("time") || type.equalsIgnoreCase("LocalTime")) {
 			return Types.TIME;
-		} else if (type.equalsIgnoreCase("timestamp")) {
+		} else if (type.equalsIgnoreCase("timestamp") || type.equalsIgnoreCase("LocalDateTime")) {
 			return Types.TIMESTAMP;
 		} else if (type.equalsIgnoreCase("double")) {
 			return Types.REAL;

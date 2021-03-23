@@ -15,7 +15,6 @@ import java.sql.Types;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -77,6 +76,8 @@ public class SQLBuilder {
 			return st.getClass().getMethod("setDate", int.class, java.sql.Date.class);
 		} else if (type.equalsIgnoreCase("LocalTime")) {
 			return st.getClass().getMethod("setTime", int.class, java.sql.Time.class);
+		} else if (type.equalsIgnoreCase("LocalDateTime")) {
+			return st.getClass().getMethod("setTimestamp", int.class, java.sql.Timestamp.class);
 		} else {
 			logger.warning("type not found : " + type);
 			return st.getClass().getMethod("setString", int.class, String.class);
@@ -102,6 +103,16 @@ public class SQLBuilder {
 		}
 		return out;
 	}
+	
+	public static boolean isIdExist(IConnectionProvider connProv, String table, Long id) throws SQLException {
+		Connection conn = connProv.getConnection();
+		try {
+			return isIdExist(conn, table, id);
+		} finally {
+			connProv.releaseConnection(conn);
+		}
+	}
+
 
 	public static boolean isIdExist(Connection conn, String table, Long id) throws SQLException {
 		Statement st = conn.createStatement();
@@ -421,6 +432,32 @@ public class SQLBuilder {
 	}
 
 	/**
+	 * create or insert the bean in the table.
+	 * 
+	 * @param connProvider a connection provider
+	 * @param bean a bean with @table
+	 * @return true if insert, false if update
+	 * @throws SQLException
+	 * @throws IllegalAccessException
+	 * @throws IllegalArgumentException
+	 * @throws InvocationTargetException
+	 */
+	public static boolean insertOrUpdate(IConnectionProvider connProv, Object bean) throws SQLException {
+		Connection conn = connProv.getConnection();
+		try {
+			try {
+				return insertOrUpdate(conn, bean);
+			} catch (Exception e) {
+				e.printStackTrace();
+				throw new SQLException(e);
+			} 
+		} finally {
+			connProv.releaseConnection(conn);
+		}
+	}
+	
+
+	/**
 	 * create or insert the bean in the table
 	 * 
 	 * @param conn a connection to the data base
@@ -432,6 +469,9 @@ public class SQLBuilder {
 	 * @throws InvocationTargetException
 	 */
 	public static boolean insertOrUpdate(Connection conn, Object bean) throws SQLException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		if (bean == null) {
+			return false;
+		}
 		List<SQLItem> items = extractSQLItemFromBean(bean, true);
 		List<SQLItem> whereItems = new LinkedList<>();
 		for (SQLItem sqlItem : items) {
@@ -512,6 +552,15 @@ public class SQLBuilder {
 
 	public static Long update(Connection conn, Collection<SQLItem> whereIds, String table, Collection<SQLItem> items) throws SQLException {
 		return update(conn, whereIds, table, items, true);
+	}
+	
+	public static boolean delete(IConnectionProvider connProv, Object bean) throws SQLException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		Connection conn = connProv.getConnection();
+		try {
+			return delete(conn, bean);
+		} finally {
+			connProv.releaseConnection(conn);
+		}
 	}
 	
 	public static boolean delete(Connection conn, Object bean) throws SQLException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
