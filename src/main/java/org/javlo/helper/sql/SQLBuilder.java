@@ -143,18 +143,15 @@ public class SQLBuilder {
 				if (a != null) {
 					if (widthAuto || !a.auto()) {
 						String type = neverNullOrEmpty(a.type(), m.getReturnType().getSimpleName());
-						System.out.println(">>>>>>>>> SQLBuilder.extractSQLItemFromBean : 1 m = "+m.getName()); //TODO: remove debug trace
 						String name;
 						if (!StringHelperSql.isEmpty(a.name())) {
 							name = a.name();
 						} else {
 							name = getAttributeName(m.getName());
-							System.out.println(">>>>>>>>> SQLBuilder.extractSQLItemFromBean : 2 name = "+name); //TODO: remove debug trace
 							if (t != null && t.camelToSnake()) {
 								name = StringHelperSql.camelToSnake(name);
 							}
 						}
-						System.out.println(">>>>>>>>> SQLBuilder.extractSQLItemFromBean : 3 name = "+name); //TODO: remove debug trace
 						//String name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
 						Object value = m.invoke(bean);
 						items.add(new SQLItem(name, type, value, a.primaryKey(), a.foreign(), a.notNull(), a.auto(), a.defaultValue()));
