@@ -136,13 +136,26 @@ public class SQLBuilder {
 
 	public static List<SQLItem> extractSQLItemFromBean(Object bean, boolean widthAuto) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		List<SQLItem> items = new LinkedList<>();
+		Table t = bean.getClass().getAnnotation(Table.class);
 		for (Method m : bean.getClass().getMethods()) {
 			if (m.getName().startsWith("get") || m.getName().startsWith("is")) {
 				Column a = m.getAnnotation(Column.class);
 				if (a != null) {
 					if (widthAuto || !a.auto()) {
 						String type = neverNullOrEmpty(a.type(), m.getReturnType().getSimpleName());
-						String name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
+						System.out.println(">>>>>>>>> SQLBuilder.extractSQLItemFromBean : 1 m = "+m.getName()); //TODO: remove debug trace
+						String name;
+						if (!StringHelperSql.isEmpty(a.name())) {
+							name = a.name();
+						} else {
+							name = getAttributeName(m.getName());
+							System.out.println(">>>>>>>>> SQLBuilder.extractSQLItemFromBean : 2 name = "+name); //TODO: remove debug trace
+							if (t != null && t.camelToSnake()) {
+								name = StringHelperSql.camelToSnake(name);
+							}
+						}
+						System.out.println(">>>>>>>>> SQLBuilder.extractSQLItemFromBean : 3 name = "+name); //TODO: remove debug trace
+						//String name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
 						Object value = m.invoke(bean);
 						items.add(new SQLItem(name, type, value, a.primaryKey(), a.foreign(), a.notNull(), a.auto(), a.defaultValue()));
 					}
@@ -153,13 +166,25 @@ public class SQLBuilder {
 	}
 	
 	public static SQLItem getPrimaryKey(Object bean) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		Table t = bean.getClass().getAnnotation(Table.class);
 		for (Method m : bean.getClass().getMethods()) {
 			if (m.getName().startsWith("get")) {
 				Column a = m.getAnnotation(Column.class);
 				if (a != null) {
 					if (a.primaryKey()) {
 						String type = neverNullOrEmpty(a.type(), m.getReturnType().getSimpleName());
-						String name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
+						
+						String name;
+						if (!StringHelperSql.isEmpty(a.name())) {
+							name = a.name();
+						} else {
+							name = getAttributeName(m.getName());
+							if (t != null && t.camelToSnake()) {
+								name = StringHelperSql.camelToSnake(name);
+							}
+						}
+						
+						//String name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
 						Object value = m.invoke(bean);
 						return new SQLItem(name, type, value, a.primaryKey(), a.foreign(), a.notNull(), a.auto(), a.defaultValue());
 					}
@@ -209,12 +234,21 @@ public class SQLBuilder {
 		String type = null;
 		String name = null;
 		try {
+			Table t = bean.getClass().getAnnotation(Table.class);
 			for (Method m : bean.getClass().getMethods()) {
 				if (m.getName().startsWith("get") || m.getName().startsWith("is")) {
 					Column a = m.getAnnotation(Column.class);
 					if (a != null) {
 						type = neverNullOrEmpty(a.type(), m.getReturnType().getSimpleName());
-						name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
+						if (!StringHelperSql.isEmpty(a.name())) {
+							name = a.name();
+						} else {
+							name = getAttributeName(m.getName());
+							if (t != null && t.camelToSnake()) {
+								name = StringHelperSql.camelToSnake(name);
+							}
+						}
+						//name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
 						Method rsMethod = rs.getClass().getMethod(getResultSetGetMethod(type), String.class);
 						Object value = convertToJava(rsMethod.invoke(rs, name), m.getReturnType());
 						boolean wasNull = rs.wasNull();
