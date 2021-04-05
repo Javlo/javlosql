@@ -16,6 +16,7 @@ public class Hotel {
 	private static Logger logger = Logger.getLogger(Hotel.class.getName());
 
 	private long id;
+	private String code;
 	private String name;
 	private long city;
 	private Date latestUpdate = new Date();
@@ -30,6 +31,15 @@ public class Hotel {
 
 	public void setId(long id) {
 		this.id = id;
+	}
+
+	@Column (unique = true)
+	public String getCode() {
+		return code;
+	}
+
+	public void setCode(String code) {
+		this.code = code;
 	}
 
 	@Column
