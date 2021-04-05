@@ -33,7 +33,7 @@ public class Hotel {
 		this.id = id;
 	}
 
-	@Column (unique = true)
+	@Column(unique = true)
 	public String getCode() {
 		return code;
 	}
