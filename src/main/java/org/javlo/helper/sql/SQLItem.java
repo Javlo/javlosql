@@ -16,9 +16,10 @@ public class SQLItem {
 	private String foreign = "";
 	private boolean notNull = false;
 	private boolean auto = false;
+	private boolean unique = false;
 	private String defaultValue = null;
 	
-	public SQLItem(String name, String type, Object value, boolean primaryKey, String foreign,boolean notNull,boolean auto, String defaultValue) {
+	public SQLItem(String name, String type, Object value, boolean primaryKey, String foreign,boolean notNull,boolean unique,boolean auto, String defaultValue) {
 		this.name = name;
 		this.type = type;
 		this.value = value;
@@ -26,6 +27,7 @@ public class SQLItem {
 		this.foreign = foreign;
 		this.notNull = notNull;
 		this.auto=auto;
+		this.unique = unique;
 		this.defaultValue = defaultValue;
 	}
 
@@ -167,6 +169,14 @@ public class SQLItem {
 
 	public void setDefaultValue(String defaultValue) {
 		this.defaultValue = defaultValue;
+	}
+
+	public boolean isUnique() {
+		return unique;
+	}
+
+	public void setUnique(boolean unique) {
+		this.unique = unique;
 	}
 
 }

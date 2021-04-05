@@ -20,6 +20,8 @@ public @interface Column {
 	
 	boolean auto() default false;
 	
+	boolean unique() default false;
+	
 	String foreign() default "";
 	
 	String defaultValue() default "";

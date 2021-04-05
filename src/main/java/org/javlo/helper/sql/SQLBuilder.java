@@ -154,7 +154,7 @@ public class SQLBuilder {
 						}
 						//String name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
 						Object value = m.invoke(bean);
-						items.add(new SQLItem(name, type, value, a.primaryKey(), a.foreign(), a.notNull(), a.auto(), a.defaultValue()));
+						items.add(new SQLItem(name, type, value, a.primaryKey(), a.foreign(), a.notNull(), a.unique(), a.auto(), a.defaultValue()));
 					}
 				}
 			}
@@ -183,7 +183,7 @@ public class SQLBuilder {
 						
 						//String name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
 						Object value = m.invoke(bean);
-						return new SQLItem(name, type, value, a.primaryKey(), a.foreign(), a.notNull(), a.auto(), a.defaultValue());
+						return new SQLItem(name, type, value, a.primaryKey(), a.foreign(), a.notNull(), a.unique(), a.auto(), a.defaultValue());
 					}
 				}
 			}
@@ -744,6 +744,20 @@ public class SQLBuilder {
 				sql = "ALTER TABLE \"" + tableName + "\" ALTER COLUMN \"" + item.getName() + "\" SET NOT NULL";
 			} else {
 				sql = "ALTER TABLE \"" + tableName + "\" ALTER COLUMN \"" + item.getName() + "\" DROP NOT NULL";
+			}
+			try {
+				st.execute(sql);
+			} catch (Exception e) {
+				if (debug) {
+					e.printStackTrace();
+				}
+			}
+			
+			String contrainName = "unique_"+item.getName();
+			if (item.isUnique()) {
+				sql = "ALTER TABLE \"" + tableName + "\" ADD CONSTRAINT "+contrainName+" UNIQUE (\"" + item.getName() + "\")";
+			} else {
+				sql = "ALTER TABLE \"" + tableName + "\" DROP CONSTRAINT \"" + contrainName + "\"";
 			}
 			try {
 				st.execute(sql);
