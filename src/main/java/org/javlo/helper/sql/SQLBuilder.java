@@ -531,17 +531,33 @@ public class SQLBuilder {
 				Long id = insert(conn, bean);
 				if (id != null) {
 					String setMethod = null;
+					Method getM=null;
 					for (Method m : bean.getClass().getMethods()) {
 						for (Annotation a : m.getAnnotations()) {
 							if (a instanceof Column && ((Column) a).primaryKey()) {
+								getM = m;
 								setMethod = m.getName().replaceFirst("get", "set");
 							}
 						}
 					}
 					if (setMethod != null) {
 						for (Method m : bean.getClass().getMethods()) {
-							if (m.getName().equals(setMethod)) {
-								m.invoke(bean, id);
+							if (m.getName().equals(setMethod) &&  m.getParameters().length == 1 && m.getParameters()[0].getType().isAssignableFrom(getM.getReturnType())) {
+								try {
+									m.invoke(bean, id);
+								} catch (IllegalAccessException e) {
+									logger.severe("setMethod="+setMethod+" "+m);
+									e.printStackTrace();
+									throw e;
+								} catch (IllegalArgumentException e) {
+									logger.severe("setMethod="+setMethod+" "+m);
+									e.printStackTrace();
+									throw e;
+								} catch (InvocationTargetException e) {
+									logger.severe("setMethod="+setMethod+" "+m);
+									e.printStackTrace();
+									throw e;
+								}
 							}
 						}
 					}
