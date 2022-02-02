@@ -728,7 +728,7 @@ public class SQLBuilder {
 			}
 		} catch (SQLException e) {
 			if (debug) {
-				e.printStackTrace();
+				System.out.println(">> error create table : "+e.getMessage());
 			}
 		}
 		for (SQLItem item : extractSQLItemFromBean(bean, true)) {
@@ -742,7 +742,7 @@ public class SQLBuilder {
 				st.execute(sql);
 			} catch (Exception e) {			
 				if (debug) {
-					e.printStackTrace();
+					System.out.println(">> error add colum : "+e.getMessage());
 				}
 			}
 			if (item.isPrimaryKey()) {
@@ -752,7 +752,7 @@ public class SQLBuilder {
 				st.execute(sql);
 			} catch (Exception e) {
 				if (debug) {
-					e.printStackTrace();
+					System.out.println(">> error primary key : "+e.getMessage());
 				}
 			}
 
@@ -765,7 +765,7 @@ public class SQLBuilder {
 				st.execute(sql);
 			} catch (Exception e) {
 				if (debug) {
-					e.printStackTrace();
+					System.out.println(">> error alter column : "+e.getMessage());
 				}
 			}
 			
@@ -779,7 +779,7 @@ public class SQLBuilder {
 				st.execute(sql);
 			} catch (Exception e) {
 				if (debug) {
-					e.printStackTrace();
+					System.out.println(">> error contraint : "+e.getMessage());
 				}
 			}
 
@@ -794,7 +794,7 @@ public class SQLBuilder {
 				st.execute(sql);
 			} catch (Exception e) {
 				if (debug) {
-					e.printStackTrace();
+					System.out.println(">> error alter : "+e.getMessage());
 				}
 			}
 
@@ -808,7 +808,7 @@ public class SQLBuilder {
 					st.execute(sql);
 				} catch (Exception e) {
 					if (debug) {
-						e.printStackTrace();
+						System.out.println(">> error add : "+e.getMessage());
 					}
 				}
 			}
