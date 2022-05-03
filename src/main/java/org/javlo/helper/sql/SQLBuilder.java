@@ -99,11 +99,13 @@ public class SQLBuilder {
 	public static <E> List<E> createList(E... items) {
 		List<E> out = new LinkedList<>();
 		for (E i : items) {
-			out.add(i);
+			if (i != null) {
+				out.add(i);
+			}
 		}
 		return out;
 	}
-	
+
 	public static boolean isIdExist(IConnectionProvider connProv, String table, Long id) throws SQLException {
 		Connection conn = connProv.getConnection();
 		try {
@@ -112,7 +114,6 @@ public class SQLBuilder {
 			connProv.releaseConnection(conn);
 		}
 	}
-
 
 	public static boolean isIdExist(Connection conn, String table, Long id) throws SQLException {
 		Statement st = conn.createStatement();
@@ -152,7 +153,7 @@ public class SQLBuilder {
 								name = StringHelperSql.camelToSnake(name);
 							}
 						}
-						//String name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
+						// String name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
 						Object value = m.invoke(bean);
 						items.add(new SQLItem(name, type, value, a.primaryKey(), a.foreign(), a.notNull(), a.unique(), a.auto(), a.defaultValue()));
 					}
@@ -161,7 +162,7 @@ public class SQLBuilder {
 		}
 		return items;
 	}
-	
+
 	public static SQLItem getPrimaryKey(Object bean) throws IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		Table t = bean.getClass().getAnnotation(Table.class);
 		for (Method m : bean.getClass().getMethods()) {
@@ -170,7 +171,7 @@ public class SQLBuilder {
 				if (a != null) {
 					if (a.primaryKey()) {
 						String type = neverNullOrEmpty(a.type(), m.getReturnType().getSimpleName());
-						
+
 						String name;
 						if (!StringHelperSql.isEmpty(a.name())) {
 							name = a.name();
@@ -180,8 +181,8 @@ public class SQLBuilder {
 								name = StringHelperSql.camelToSnake(name);
 							}
 						}
-						
-						//String name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
+
+						// String name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
 						Object value = m.invoke(bean);
 						return new SQLItem(name, type, value, a.primaryKey(), a.foreign(), a.notNull(), a.unique(), a.auto(), a.defaultValue());
 					}
@@ -190,7 +191,6 @@ public class SQLBuilder {
 		}
 		return null;
 	}
-
 
 	private static String getAttributeName(String name) {
 		if (name.startsWith("get")) {
@@ -203,19 +203,19 @@ public class SQLBuilder {
 	}
 
 	private static Object convertToJava(Object o, Class javaClass) {
-		if (o==null) {
+		if (o == null) {
 			return null;
 		}
 		if (javaClass.equals(LocalDate.class)) {
-			java.sql.Date date = (java.sql.Date)o;			
+			java.sql.Date date = (java.sql.Date) o;
 			return date.toLocalDate();
 		}
 		if (javaClass.equals(LocalDateTime.class)) {
-			Timestamp ts = (Timestamp)o;		
+			Timestamp ts = (Timestamp) o;
 			return ts.toLocalDateTime();
 		}
 		if (javaClass.equals(LocalTime.class)) {
-			Time ts = (Time)o;			
+			Time ts = (Time) o;
 			return ts.toLocalTime();
 		}
 		if (o instanceof Timestamp) {
@@ -245,7 +245,7 @@ public class SQLBuilder {
 								name = StringHelperSql.camelToSnake(name);
 							}
 						}
-						//name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
+						// name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
 						Method rsMethod = rs.getClass().getMethod(getResultSetGetMethod(type), String.class);
 						Object value = convertToJava(rsMethod.invoke(rs, name), m.getReturnType());
 						boolean wasNull = rs.wasNull();
@@ -292,11 +292,13 @@ public class SQLBuilder {
 		Long outId = null;
 		SQLItem primaryKey = null;
 		for (SQLItem i : items) {
-			if (i.isAuto()) {
-				primaryKey = i;
-			} else {
-				sql = sql + '"' + i.getName() + "\",";
-				valuesSQL = valuesSQL + "?,";
+			if (i != null) {
+				if (i.isAuto()) {
+					primaryKey = i;
+				} else {
+					sql = sql + '"' + i.getName() + "\",";
+					valuesSQL = valuesSQL + "?,";
+				}
 			}
 		}
 		sql = sql.substring(0, sql.length() - 1) + ") VALUES (" + valuesSQL.substring(0, valuesSQL.length() - 1) + ")";
@@ -304,30 +306,32 @@ public class SQLBuilder {
 		if (conn != null) {
 			PreparedStatement st = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			try {
-				int i = 1;				
+				int i = 1;
 				for (SQLItem item : items) {
 					errorItem = item;
-					if (!item.isAuto()) { 
-						Method set = getStatementSetMethod(st, item.getType());
-						if (item.getValue() != null) {
-							try {
-								Object value = item.getValue();
-								if (item.getValue().getClass().equals(LocalDate.class)) {
-									value = java.sql.Date.valueOf((LocalDate)value);
-								} else if (item.getValue().getClass().equals(LocalDateTime.class)) {
-									value = java.sql.Timestamp.valueOf((LocalDateTime)value);
-								}  else if (item.getValue().getClass().equals(LocalTime.class)) {
-									value = java.sql.Time.valueOf((LocalTime)value);
+					if (item != null) {
+						if (!item.isAuto()) {
+							Method set = getStatementSetMethod(st, item.getType());
+							if (item.getValue() != null) {
+								try {
+									Object value = item.getValue();
+									if (item.getValue().getClass().equals(LocalDate.class)) {
+										value = java.sql.Date.valueOf((LocalDate) value);
+									} else if (item.getValue().getClass().equals(LocalDateTime.class)) {
+										value = java.sql.Timestamp.valueOf((LocalDateTime) value);
+									} else if (item.getValue().getClass().equals(LocalTime.class)) {
+										value = java.sql.Time.valueOf((LocalTime) value);
+									}
+									set.invoke(st, i, value);
+								} catch (Exception e) {
+									e.printStackTrace();
+									throw new SQLException("error on : " + item.getName() + ":" + item.getType() + " method:" + set.getName() + " method_type:" + set.getParameters()[1].getType() + " value_type=" + item.getValue().getClass().getName() + " - " + e.getMessage());
 								}
-								set.invoke(st, i, value);
-							} catch (Exception e) {
-								e.printStackTrace();
-								throw new SQLException("error on : " + item.getName() + ":" + item.getType() + " method:" + set.getName() + " method_type:" + set.getParameters()[1].getType() + " value_type=" + item.getValue().getClass().getName() + " - " + e.getMessage());
+							} else {
+								st.setNull(i, item.getSQLType());
 							}
-						} else {
-							st.setNull(i, item.getSQLType());
+							i++;
 						}
-						i++;
 					}
 				}
 				errorItem = null;
@@ -349,9 +353,9 @@ public class SQLBuilder {
 				}
 			} catch (Exception e) {
 				if (errorItem != null) {
-					logger.severe(" Item:"+errorItem.getName()+ " - SQLType:"+errorItem.getSQLType()+" - Type:"+errorItem.getType());
+					logger.severe(" Item:" + errorItem.getName() + " - SQLType:" + errorItem.getSQLType() + " - Type:" + errorItem.getType());
 				}
-				logger.warning("error on : "+sql);
+				logger.warning("error on : " + sql);
 				e.printStackTrace();
 				throw new SQLException(e);
 			} finally {
@@ -371,7 +375,7 @@ public class SQLBuilder {
 		}
 		return tableName;
 	}
-	
+
 	public static String getTableName(Class clazz) {
 		Table t = (Table) clazz.getAnnotation(Table.class);
 		String tableName = clazz.getSimpleName().toLowerCase();
@@ -465,8 +469,10 @@ public class SQLBuilder {
 	/**
 	 * create or insert the bean in the table.
 	 * 
-	 * @param connProvider a connection provider
-	 * @param bean a bean with @table
+	 * @param connProvider
+	 *            a connection provider
+	 * @param bean
+	 *            a bean with @table
 	 * @return true if insert, false if update
 	 * @throws SQLException
 	 * @throws IllegalAccessException
@@ -481,18 +487,19 @@ public class SQLBuilder {
 			} catch (Exception e) {
 				e.printStackTrace();
 				throw new SQLException(e);
-			} 
+			}
 		} finally {
 			connProv.releaseConnection(conn);
 		}
 	}
-	
 
 	/**
 	 * create or insert the bean in the table
 	 * 
-	 * @param conn a connection to the data base
-	 * @param bean a bean with @table
+	 * @param conn
+	 *            a connection to the data base
+	 * @param bean
+	 *            a bean with @table
 	 * @return true if insert, false if update
 	 * @throws SQLException
 	 * @throws IllegalAccessException
@@ -531,7 +538,7 @@ public class SQLBuilder {
 				Long id = insert(conn, bean);
 				if (id != null) {
 					String setMethod = null;
-					Method getM=null;
+					Method getM = null;
 					for (Method m : bean.getClass().getMethods()) {
 						for (Annotation a : m.getAnnotations()) {
 							if (a instanceof Column && ((Column) a).primaryKey()) {
@@ -542,19 +549,19 @@ public class SQLBuilder {
 					}
 					if (setMethod != null) {
 						for (Method m : bean.getClass().getMethods()) {
-							if (m.getName().equals(setMethod) &&  m.getParameters().length == 1 && m.getParameters()[0].getType().isAssignableFrom(getM.getReturnType())) {
+							if (m.getName().equals(setMethod) && m.getParameters().length == 1 && m.getParameters()[0].getType().isAssignableFrom(getM.getReturnType())) {
 								try {
 									m.invoke(bean, id);
 								} catch (IllegalAccessException e) {
-									logger.severe("setMethod="+setMethod+" "+m);
+									logger.severe("setMethod=" + setMethod + " " + m);
 									e.printStackTrace();
 									throw e;
 								} catch (IllegalArgumentException e) {
-									logger.severe("setMethod="+setMethod+" "+m);
+									logger.severe("setMethod=" + setMethod + " " + m);
 									e.printStackTrace();
 									throw e;
 								} catch (InvocationTargetException e) {
-									logger.severe("setMethod="+setMethod+" "+m);
+									logger.severe("setMethod=" + setMethod + " " + m);
 									e.printStackTrace();
 									throw e;
 								}
@@ -600,7 +607,7 @@ public class SQLBuilder {
 	public static Long update(Connection conn, Collection<SQLItem> whereIds, String table, Collection<SQLItem> items) throws SQLException {
 		return update(conn, whereIds, table, items, true);
 	}
-	
+
 	public static boolean delete(IConnectionProvider connProv, Object bean) throws SQLException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		Connection conn = connProv.getConnection();
 		try {
@@ -609,13 +616,13 @@ public class SQLBuilder {
 			connProv.releaseConnection(conn);
 		}
 	}
-	
+
 	public static boolean delete(Connection conn, Object bean) throws SQLException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-		return delete(conn, getTableName(bean), (long)getPrimaryKey(bean).getValue());
+		return delete(conn, getTableName(bean), (long) getPrimaryKey(bean).getValue());
 	}
-	
-	public static boolean delete(Connection conn, String table, long id) throws SQLException {		
-		String sql = "DELETE FROM \"" + table + "\" WHERE id="+id;
+
+	public static boolean delete(Connection conn, String table, long id) throws SQLException {
+		String sql = "DELETE FROM \"" + table + "\" WHERE id=" + id;
 		if (conn != null) {
 			Statement st = conn.createStatement();
 			try {
@@ -642,7 +649,7 @@ public class SQLBuilder {
 		}
 
 		sql = sql.substring(0, sql.length() - 1) + createWereClause(whereIds);
-		SQLItem errorItem=null;
+		SQLItem errorItem = null;
 		if (conn != null) {
 			PreparedStatement st = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			try {
@@ -652,12 +659,12 @@ public class SQLBuilder {
 					Method set = getStatementSetMethod(st, item.getType());
 					if (item.getValue() != null) {
 						Object value = item.getValue();
-						if (value instanceof LocalDateTime ) {
-							value = Timestamp.valueOf((LocalDateTime)value);
+						if (value instanceof LocalDateTime) {
+							value = Timestamp.valueOf((LocalDateTime) value);
 						} else if (value instanceof LocalDate) {
-							value = java.sql.Date.valueOf((LocalDate)value);
+							value = java.sql.Date.valueOf((LocalDate) value);
 						} else if (value instanceof LocalTime) {
-							value = java.sql.Time.valueOf((LocalTime)value);
+							value = java.sql.Time.valueOf((LocalTime) value);
 						}
 						set.invoke(st, i, value);
 					} else {
@@ -681,11 +688,11 @@ public class SQLBuilder {
 				e.printStackTrace();
 				String itemError = "";
 				if (errorItem != null) {
-					itemError = " Item:"+errorItem.getName()+ " - SQLType:"+errorItem.getSQLType()+" - Type:"+errorItem.getType()+" - value:"+errorItem.getValue();
+					itemError = " Item:" + errorItem.getName() + " - SQLType:" + errorItem.getSQLType() + " - Type:" + errorItem.getType() + " - value:" + errorItem.getValue();
 					logger.severe(itemError);
 				}
 				logger.severe("error in : " + sql);
-				
+
 				throw new SQLException(e);
 			} finally {
 				st.close();
@@ -711,7 +718,7 @@ public class SQLBuilder {
 			return ((String) value).replace("'", "''");
 		}
 	}
-	
+
 	public static void createOrUpdateTable(Connection conn, Object bean) throws SQLException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
 		createOrUpdateTable(conn, bean, false);
 	}
@@ -720,15 +727,15 @@ public class SQLBuilder {
 		String tableName = getTableName(bean);
 		Statement st = conn.createStatement();
 		Map<Integer, String> sqlTypes = getAllJdbcTypeNames();
-		try {			
+		try {
 			String sql = "CREATE TABLE \"" + tableName + "\" ()";
 			st.execute(sql);
 			if (debug) {
-				System.out.println(">>> create database : "+tableName+" ["+sql+']');
+				System.out.println(">>> create database : " + tableName + " [" + sql + ']');
 			}
 		} catch (SQLException e) {
 			if (debug) {
-				System.out.println(">> error create table : "+e.getMessage());
+				System.out.println(">> error create table : " + e.getMessage());
 			}
 		}
 		for (SQLItem item : extractSQLItemFromBean(bean, true)) {
@@ -740,9 +747,9 @@ public class SQLBuilder {
 			}
 			try {
 				st.execute(sql);
-			} catch (Exception e) {			
+			} catch (Exception e) {
 				if (debug) {
-					System.out.println(">> error add colum : "+e.getMessage());
+					System.out.println(">> error add colum : " + e.getMessage());
 				}
 			}
 			if (item.isPrimaryKey()) {
@@ -752,7 +759,7 @@ public class SQLBuilder {
 				st.execute(sql);
 			} catch (Exception e) {
 				if (debug) {
-					System.out.println(">> error primary key : "+e.getMessage());
+					System.out.println(">> error primary key : " + e.getMessage());
 				}
 			}
 
@@ -765,13 +772,13 @@ public class SQLBuilder {
 				st.execute(sql);
 			} catch (Exception e) {
 				if (debug) {
-					System.out.println(">> error alter column : "+e.getMessage());
+					System.out.println(">> error alter column : " + e.getMessage());
 				}
 			}
-			
-			String contrainName = "unique_"+item.getName();
+
+			String contrainName = "unique_" + item.getName();
 			if (item.isUnique()) {
-				sql = "ALTER TABLE \"" + tableName + "\" ADD CONSTRAINT "+contrainName+" UNIQUE (\"" + item.getName() + "\")";
+				sql = "ALTER TABLE \"" + tableName + "\" ADD CONSTRAINT " + contrainName + " UNIQUE (\"" + item.getName() + "\")";
 			} else {
 				sql = "ALTER TABLE \"" + tableName + "\" DROP CONSTRAINT \"" + contrainName + "\"";
 			}
@@ -779,7 +786,7 @@ public class SQLBuilder {
 				st.execute(sql);
 			} catch (Exception e) {
 				if (debug) {
-					System.out.println(">> error contraint : "+e.getMessage());
+					System.out.println(">> error contraint : " + e.getMessage());
 				}
 			}
 
@@ -794,7 +801,7 @@ public class SQLBuilder {
 				st.execute(sql);
 			} catch (Exception e) {
 				if (debug) {
-					System.out.println(">> error alter : "+e.getMessage());
+					System.out.println(">> error alter : " + e.getMessage());
 				}
 			}
 
@@ -808,7 +815,7 @@ public class SQLBuilder {
 					st.execute(sql);
 				} catch (Exception e) {
 					if (debug) {
-						System.out.println(">> error add : "+e.getMessage());
+						System.out.println(">> error add : " + e.getMessage());
 					}
 				}
 			}
