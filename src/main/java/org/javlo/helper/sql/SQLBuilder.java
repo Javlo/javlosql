@@ -272,7 +272,7 @@ public class SQLBuilder {
 
 	public static Long insert(Connection conn, Object bean, SQLItem... manualItems) throws SQLException {
 		Table t = bean.getClass().getAnnotation(Table.class);
-		String tableName = bean.getClass().getSimpleName().toLowerCase();
+		String tableName = getTableName(bean.getClass());
 		if (t != null && !isEmpty(t.name())) {
 			tableName = t.name();
 		}
@@ -369,7 +369,7 @@ public class SQLBuilder {
 
 	public static String getTableName(Object bean) {
 		Table t = bean.getClass().getAnnotation(Table.class);
-		String tableName = bean.getClass().getSimpleName().toLowerCase();
+		String tableName = getTableName(bean.getClass());
 		if (t != null && !isEmpty(t.name())) {
 			tableName = t.name();
 		}
@@ -378,8 +378,17 @@ public class SQLBuilder {
 
 	public static String getTableName(Class clazz) {
 		Table t = (Table) clazz.getAnnotation(Table.class);
-		String tableName = clazz.getSimpleName().toLowerCase();
-		if (t != null && !isEmpty(t.name())) {
+		if (t==null) {
+			return null;
+		}
+		String tableName;
+		if (t.camelToSnake()) {
+			tableName = StringHelperSql.camelToSnake(clazz.getSimpleName());
+		} else {
+			tableName = clazz.getSimpleName().toLowerCase();	
+		}
+		
+		if (!isEmpty(t.name())) {
 			tableName = t.name();
 		}
 		return tableName;
@@ -821,6 +830,10 @@ public class SQLBuilder {
 			}
 		}
 		st.close();
+	}
+	
+	public static void main(String[] args) {
+		System.out.println(">>>>>>>>> SQLBuilder.main : StringHelperSql.camelToSnake(clazz.getSimpleName()); = "+StringHelperSql.camelToSnake("MarketingDocument")); //TODO: remove debug trace
 	}
 
 	private static boolean isNumeric(String type) {
