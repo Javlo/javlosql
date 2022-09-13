@@ -18,8 +18,9 @@ public class SQLItem {
 	private boolean auto = false;
 	private boolean unique = false;
 	private String defaultValue = null;
+	private int order = 0;
 	
-	public SQLItem(String name, String type, Object value, boolean primaryKey, String foreign,boolean notNull,boolean unique,boolean auto, String defaultValue) {
+	public SQLItem(String name, String type, Object value, boolean primaryKey, String foreign,boolean notNull,boolean unique,boolean auto, int order, String defaultValue) {
 		this.name = name;
 		this.type = type;
 		this.value = value;
@@ -28,6 +29,7 @@ public class SQLItem {
 		this.notNull = notNull;
 		this.auto=auto;
 		this.unique = unique;
+		this.order = order;
 		this.defaultValue = defaultValue;
 	}
 
@@ -177,6 +179,14 @@ public class SQLItem {
 
 	public void setUnique(boolean unique) {
 		this.unique = unique;
+	}
+
+	public int getOrder() {
+		return order;
+	}
+
+	public void setOrder(int order) {
+		this.order = order;
 	}
 
 }

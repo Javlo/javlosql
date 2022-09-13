@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -25,6 +26,8 @@ import java.util.Map;
 import java.util.logging.Logger;
 
 public class SQLBuilder {
+	
+	public static boolean DEBUG = false;
 
 	private static Logger logger = Logger.getLogger(SQLBuilder.class.getName());
 
@@ -155,11 +158,14 @@ public class SQLBuilder {
 						}
 						// String name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
 						Object value = m.invoke(bean);
-						items.add(new SQLItem(name, type, value, a.primaryKey(), a.foreign(), a.notNull(), a.unique(), a.auto(), a.defaultValue()));
+						items.add(new SQLItem(name, type, value, a.primaryKey(), a.foreign(), a.notNull(), a.unique(), a.auto(), a.order(), a.defaultValue()));
 					}
 				}
 			}
 		}
+		Collections.sort(items, (o1, o2) -> {
+			return o1.getOrder()-o2.getOrder();
+		});
 		return items;
 	}
 
@@ -184,7 +190,7 @@ public class SQLBuilder {
 
 						// String name = neverNullOrEmpty(a.name(), getAttributeName(m.getName()));
 						Object value = m.invoke(bean);
-						return new SQLItem(name, type, value, a.primaryKey(), a.foreign(), a.notNull(), a.unique(), a.auto(), a.defaultValue());
+						return new SQLItem(name, type, value, a.primaryKey(), a.foreign(), a.notNull(), a.unique(), a.auto(), a.order(), a.defaultValue());
 					}
 				}
 			}
@@ -516,6 +522,7 @@ public class SQLBuilder {
 	 * @throws InvocationTargetException
 	 */
 	public static boolean insertOrUpdate(Connection conn, Object bean) throws SQLException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+		
 		if (bean == null) {
 			return false;
 		}
@@ -535,16 +542,26 @@ public class SQLBuilder {
 			boolean update = false;
 			String where = createWereClause(whereItems);
 			if (where != null) {
-				ResultSet rs = st.executeQuery("select * from \"" + tableName + "\" " + where);
+				String sql = "select * from \"" + tableName + "\" " + where;
+				if (DEBUG) {
+					System.out.println(">>>>>>>>> SQLBuilder.insertOrUpdate : sql = "+sql); //TODO: remove debug trace
+				}
+				ResultSet rs = st.executeQuery(sql);
 				if (rs.next()) {
 					update = true;
 				}
+			}
+			if (DEBUG) {
+				System.out.println(">>>>>>>>> SQLBuilder.insertOrUpdate : update = "+update); //TODO: remove debug trace
 			}
 			if (update) {
 				update(conn, whereItems, bean, null);
 				return false;
 			} else {
 				Long id = insert(conn, bean);
+				if (DEBUG) {
+					System.out.println(">>>>>>>>> SQLBuilder.insertOrUpdate : new id = "+id); //TODO: remove debug trace
+				}
 				if (id != null) {
 					String setMethod = null;
 					Method getM = null;

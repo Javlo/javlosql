@@ -25,4 +25,6 @@ public @interface Column {
 	String foreign() default "";
 	
 	String defaultValue() default "";
+	
+	int order() default 0;
 }
