@@ -82,7 +82,7 @@ public class SQLBuilder {
 		} else if (type.equalsIgnoreCase("LocalDateTime")) {
 			return st.getClass().getMethod("setTimestamp", int.class, java.sql.Timestamp.class);
 		} else {
-			logger.warning("type not found : " + type);
+			logger.severe("type not found : " + type);
 			return st.getClass().getMethod("setString", int.class, String.class);
 		}
 	}
@@ -883,7 +883,7 @@ public class SQLBuilder {
 				break;
 
 			case '\'':
-				sBuilder.append('\\');
+				sBuilder.append('\'');
 				sBuilder.append('\'');
 
 				break;
@@ -917,7 +917,7 @@ public class SQLBuilder {
 	}
 	
 	public static void main(String[] args) {
-		System.out.println(">>>>>>>>> SQLBuilder.main : StringHelperSql.camelToSnake(clazz.getSimpleName()); = "+StringHelperSql.camelToSnake("MarketingDocument")); //TODO: remove debug trace
+		System.out.println(">>>>>>>>> escpae = "+escapeString("patrick 'est' vraiment beau.", true)); //TODO: remove debug trace
 	}
 
 	private static boolean isNumeric(String type) {
